@@ -48,3 +48,13 @@ relâché à la troisième."
   (is (eq :mouse-button-left (game-kit::parse-button "left")))
   (is (eq :mouse-button-right (game-kit::parse-button "RIGHT")))
   (signals error (game-kit::parse-button "fourth")))
+
+(test click-holds-position
+  "Pendant un clic simulé, la position simulée ne cède pas à la souris réelle."
+  (with-clean-mouse
+    (setf game-kit::*simulated-mouse* (cons 10 20)
+          ;; Ancre impossible : la souris réelle « a bougé ».
+          game-kit::*simulated-mouse-anchor* (cons -1 -1)
+          (gethash :mouse-button-left game-kit::*simulated-buttons*) 1)
+    (game-kit::release-simulated-mouse-if-moved)
+    (is (equal '(10 . 20) game-kit::*simulated-mouse*))))

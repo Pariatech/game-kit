@@ -46,7 +46,8 @@
 ;;; Souris : le jeu la lit par MOUSE-X, MOUSE-Y, MOUSE-BUTTON-DOWN-P,
 ;;; MOUSE-BUTTON-PRESSED-P, MOUSE-BUTTON-RELEASED-P et MOUSE-WHEEL-MOVE, qui
 ;;; combinent la souris réelle et celle simulée par game_input. La position
-;;; simulée tient jusqu'à ce que la souris réelle bouge ; un bouton simulé est
+;;; simulée tient jusqu'à ce que la souris réelle bouge, mais jamais pendant un
+;;; clic simulé ; un bouton simulé est
 ;;; tenu un nombre d'images, comme une touche ; la molette simulée vaut pour une
 ;;; image.
 
@@ -66,8 +67,12 @@
         *simulated-mouse-anchor* (cons (raylib:get-mouse-x) (raylib:get-mouse-y))))
 
 (defun release-simulated-mouse-if-moved ()
+  "Rend la main à la souris réelle si elle a bougé, sauf pendant un clic simulé
+(bouton tenu, ou relâché à cette image) : il doit finir où il a commencé."
   (let ((anchor *simulated-mouse-anchor*))
     (when (and anchor
+               (zerop (hash-table-count *simulated-buttons*))
+               (zerop (hash-table-count *simulated-buttons-previous*))
                (or (/= (car anchor) (raylib:get-mouse-x))
                    (/= (cdr anchor) (raylib:get-mouse-y))))
       (setf *simulated-mouse* nil

@@ -350,7 +350,7 @@ lit la saisie à chaque image, même en pause."
     ((key "key" "string" "Touche raylib à tenir enfoncée : right, left, up, down, space, a, enter…")
      (frames "frames" "integer" "Nombre d'images pendant lesquelles la touche ou le bouton reste enfoncé (1 par défaut).")
      (text "text" "string" "Texte saisi, pour la console du jeu : ` l'ouvre ou la ferme, un saut de ligne envoie le message.")
-     (mouse-x "mouse_x" "integer" "Position de la souris simulée, en pixels de la fenêtre (avec mouse_y). Elle tient jusqu'à ce que la souris réelle bouge.")
+     (mouse-x "mouse_x" "integer" "Position de la souris simulée, en pixels de la fenêtre (avec mouse_y). Elle tient jusqu'à ce que la souris réelle bouge, sauf pendant un clic simulé : pour cliquer quelque part, donner la position et le bouton dans le même appel.")
      (mouse-y "mouse_y" "integer" "Position de la souris simulée (avec mouse_x).")
      (button "button" "string" "Bouton de la souris à tenir enfoncé, à la position donnée ou courante." :enum ("left" "right" "middle"))
      (wheel "wheel" "number" "Mouvement de molette pendant une image : positif vers le haut."))

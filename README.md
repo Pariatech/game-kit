@@ -27,7 +27,7 @@ Noyau d'un jeu en Common Lisp (SBCL, raylib) que Claude Code modifie **à chaud*
   - la touche `` ` `` l'ouvre et met le jeu en pause ;
   - le joueur écrit à la session Claude Code, qui répond dans la console (`game_console_reply`) ;
   - le pont `bridge/server.ts` (Bun) transmet les messages en notifications `claude/channel`.
-- **Saisie** (`input.lisp`) : `key-down-p`, `key-pressed-p` et `next-char` combinent le clavier réel et la saisie simulée par `game_input`. De même pour la souris : `mouse-x`, `mouse-y`, `mouse-button-down-p`, `mouse-button-pressed-p`, `mouse-button-released-p`, `mouse-wheel-move`. La position simulée tient jusqu'à ce que la souris réelle bouge.
+- **Saisie** (`input.lisp`) : `key-down-p`, `key-pressed-p` et `next-char` combinent le clavier réel et la saisie simulée par `game_input`. De même pour la souris : `mouse-x`, `mouse-y`, `mouse-button-down-p`, `mouse-button-pressed-p`, `mouse-button-released-p`, `mouse-wheel-move`. La position simulée tient jusqu'à ce que la souris réelle bouge, sauf pendant un clic simulé : donner position et bouton dans le même appel de `game_input` pour cliquer à un endroit précis.
 - **Dessin et texte sans allocation** (`draw.lisp`) :
   - `clear-background`, `draw-rectangle`, `draw-line`, `draw-text`, `measure-text` ;
   - couleurs passées en `uint32`, texte encodé en UTF-8 dans un tampon C ;
