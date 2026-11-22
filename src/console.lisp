@@ -94,7 +94,7 @@ Les messages retirés sont considérés comme reçus par Claude."
   (when (eq *paused* :console) (setf *paused* nil)))
 
 (defun mouse-context ()
-  (values (raylib:get-mouse-x) (raylib:get-mouse-y)))
+  (values (mouse-x) (mouse-y)))
 
 (defun console-send (console)
   ;; STRING-TRIM peut renvoyer la chaîne d'origine : la copier avant de la vider.
@@ -141,7 +141,7 @@ Les messages retirés sont considérés comme reçus par Claude."
         (decf (fill-pointer (console-input console))))
       (console-scroll-input console)
       ;; Le jeu est en pause et ADVANCE-INPUT n'est pas appelé : sans cela, une
-      ;; touche simulée resterait tout juste enfoncée à chaque image.
+      ;; touche ou un bouton simulé resterait tout juste enfoncé à chaque image.
       (mark-simulated-keys-seen))
     (let ((banner (console-banner console)))
       (when (and banner (> *frame* (cdr banner)))
@@ -184,7 +184,7 @@ visibles, hauteur de ligne, largeur de texte, lignes de la saisie."
                    (if (key-pressed-p :key-down :repeat t) -1 0)
                    (if (key-pressed-p :key-page-up :repeat t) page 0)
                    (if (key-pressed-p :key-page-down :repeat t) (- page) 0)
-                   (round (* *console-wheel-lines* (raylib:get-mouse-wheel-move))))))
+                   (round (* *console-wheel-lines* (mouse-wheel-move))))))
     (cond ((key-pressed-p :key-home) (setf (console-scroll console) (console-max-scroll console)))
           ((key-pressed-p :key-end) (setf (console-scroll console) 0))
           ((/= delta 0) (console-scroll-by console delta)))))

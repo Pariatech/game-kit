@@ -17,7 +17,7 @@ Noyau d'un jeu en Common Lisp (SBCL, raylib) que Claude Code modifie **à chaud*
   - `game_reload` : recompiler et recharger les fichiers modifiés, en gardant l'état ;
   - `game_state` : état du jeu en JSON ;
   - `game_screenshot` : capture d'écran ;
-  - `game_input` : touches et texte simulés ;
+  - `game_input` : touches, texte et souris (position, boutons, molette) simulés ;
   - `game_control` : pause, reprise, pas à pas ;
   - `game_console_reply` : réponse dans la console du jeu ;
   - `game_benchmark` et `game_profile` : mesures de rendu et profilage ;
@@ -27,7 +27,7 @@ Noyau d'un jeu en Common Lisp (SBCL, raylib) que Claude Code modifie **à chaud*
   - la touche `` ` `` l'ouvre et met le jeu en pause ;
   - le joueur écrit à la session Claude Code, qui répond dans la console (`game_console_reply`) ;
   - le pont `bridge/server.ts` (Bun) transmet les messages en notifications `claude/channel`.
-- **Saisie** (`input.lisp`) : `key-down-p`, `key-pressed-p` et `next-char` combinent le clavier réel et la saisie simulée par `game_input`.
+- **Saisie** (`input.lisp`) : `key-down-p`, `key-pressed-p` et `next-char` combinent le clavier réel et la saisie simulée par `game_input`. De même pour la souris : `mouse-x`, `mouse-y`, `mouse-button-down-p`, `mouse-button-pressed-p`, `mouse-button-released-p`, `mouse-wheel-move`. La position simulée tient jusqu'à ce que la souris réelle bouge.
 - **Dessin et texte sans allocation** (`draw.lisp`) :
   - `clear-background`, `draw-rectangle`, `draw-line`, `draw-text`, `measure-text` ;
   - couleurs passées en `uint32`, texte encodé en UTF-8 dans un tampon C ;
@@ -209,7 +209,7 @@ Mesures et explications dans [docs/mesures.md](docs/mesures.md).
 ## Règles du jeu hôte
 
 - **raylib :** ne jamais l'appeler hors du thread principal ; passer par `call-in-main-thread`.
-- **Clavier :** le lire avec `key-down-p` et `key-pressed-p` (et `next-char`), jamais `raylib:is-key-down`, sinon `game_input` est sans effet.
+- **Clavier et souris :** les lire avec `key-down-p` et `key-pressed-p` (et `next-char`), `mouse-x`, `mouse-y`, `mouse-button-*-p` et `mouse-wheel-move`, jamais `raylib:is-key-down` ou `raylib:get-mouse-x`, sinon `game_input` est sans effet.
 - **Simulation :** tout tirage aléatoire passe par `make-rng` et `rng-*`, jamais par `random`, pour qu'elle se rejoue à l'identique.
 - **Float traps :** masqués seulement autour de la boucle principale (`run-game` s'en charge).
 - **Noms :** ne pas nommer une fonction d'après un symbole de `CL` (`speed`, `step`…) : verrou de package de SBCL.
@@ -233,7 +233,8 @@ Les suites couvrent :
 - le choix des fichiers rechargés ;
 - le générateur ;
 - l'horloge ;
-- le texte sans allocation.
+- le texte sans allocation ;
+- la souris simulée.
 
 Tout tourne sans fenêtre.
 

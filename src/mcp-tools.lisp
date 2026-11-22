@@ -29,6 +29,14 @@
                                     (setf (gethash (string-downcase key) keys) frames))
                                   *simulated-keys*)
                          keys)
+      "simulated_mouse" (ht "position" (if *simulated-mouse*
+                                           (list (car *simulated-mouse*) (cdr *simulated-mouse*))
+                                           :null)
+                            "buttons" (let ((buttons (ht)))
+                                        (maphash (lambda (button frames)
+                                                   (setf (gethash (button-json-name button) buttons) frames))
+                                                 *simulated-buttons*)
+                                        buttons))
       "last_error" (if *last-error*
                        (ht "where" (json-value (getf *last-error* :where))
                            "message" (getf *last-error* :message)
@@ -281,6 +289,27 @@ absolu du PNG, à ouvrir ensuite avec l'outil de lecture de fichiers."
         key
         (error "Touche inconnue : ~a (exemples : right, space, a, enter)." name))))
 
+(defparameter *mouse-buttons*
+  '(("left" . :mouse-button-left) ("right" . :mouse-button-right) ("middle" . :mouse-button-middle)))
+
+(defun parse-button (name)
+  (or (cdr (assoc (string-downcase name) *mouse-buttons* :test #'string=))
+      (error "Bouton inconnu : ~a (left, right ou middle)." name)))
+
+(defun button-json-name (button)
+  (or (car (rassoc button *mouse-buttons*)) (string-downcase button)))
+
+(defun wait-consumed (pending frames what)
+  "Attend que PENDING, appelé sur le thread principal, renvoie NIL, ou que le jeu
+se mette en pause. WHAT nomme ce qui attend, pour l'erreur."
+  ;; À 9 images/s (fenêtre cachée), 600 images prennent environ 70 s.
+  (loop with deadline = (+ (get-internal-real-time)
+                           (* (+ 5 (/ frames 8)) internal-time-units-per-second))
+        while (call-in-main-thread (lambda () (and (not *paused*) (funcall pending))))
+        do (when (> (get-internal-real-time) deadline)
+             (error "~a n'a pas été consommé à temps : la fenêtre est-elle ralentie ?" what))
+           (sleep 0.02)))
+
 (defun simulate-key (key frames)
   "Tient KEY enfoncée pendant FRAMES images. Renvoie vrai si le jeu est en pause."
   (let ((paused (call-in-main-thread
@@ -288,14 +317,23 @@ absolu du PNG, à ouvrir ensuite avec l'outil de lecture de fichiers."
                    (setf (gethash key *simulated-keys*) frames)
                    *paused*))))
     (unless paused
-      ;; À 9 images/s (fenêtre cachée), 600 images prennent environ 70 s.
-      (loop with deadline = (+ (get-internal-real-time)
-                               (* (+ 5 (/ frames 8)) internal-time-units-per-second))
-            while (call-in-main-thread (lambda () (and (not *paused*)
-                                                       (gethash key *simulated-keys*))))
-            do (when (> (get-internal-real-time) deadline)
-                 (error "La touche n'a pas été consommée à temps : la fenêtre est-elle ralentie ?"))
-               (sleep 0.02)))
+      (wait-consumed (lambda () (gethash key *simulated-keys*)) frames "La touche"))
+    paused))
+
+(defun simulate-mouse (x y button frames wheel)
+  "Place la souris en (X, Y) si donnés, puis tient BUTTON enfoncé FRAMES images
+et tourne la molette de WHEEL crans. Renvoie vrai si le jeu est en pause."
+  (let ((paused (call-in-main-thread
+                 (lambda ()
+                   (when x (simulate-mouse-position x y))
+                   (when button (setf (gethash button *simulated-buttons*) frames))
+                   (when wheel (setf *simulated-wheel* (float wheel 1f0)))
+                   *paused*))))
+    (unless paused
+      (when button
+        (wait-consumed (lambda () (gethash button *simulated-buttons*)) frames "Le bouton"))
+      (when wheel
+        (wait-consumed (lambda () (/= 0 *simulated-wheel*)) 1 "La molette")))
     paused))
 
 (defun type-text (text)
@@ -310,15 +348,36 @@ lit la saisie à chaque image, même en pause."
 
 (define-mcp-tool "game_input"
     ((key "key" "string" "Touche raylib à tenir enfoncée : right, left, up, down, space, a, enter…")
-     (frames "frames" "integer" "Nombre d'images pendant lesquelles la touche reste enfoncée (1 par défaut).")
-     (text "text" "string" "Texte saisi, pour la console du jeu : ` l'ouvre ou la ferme, un saut de ligne envoie le message."))
-    "Simule une touche enfoncée pendant un nombre d'images, ou une saisie de texte,
-sans focus de fenêtre. Pour une touche : si le jeu tourne, attend que ces images
-soient passées puis renvoie l'état ; si le jeu est en pause, la touche reste en
-attente (utiliser game_control step). Le texte est lu même en pause."
-  (when (and key text)
-    (error "Donner key ou text, pas les deux."))
+     (frames "frames" "integer" "Nombre d'images pendant lesquelles la touche ou le bouton reste enfoncé (1 par défaut).")
+     (text "text" "string" "Texte saisi, pour la console du jeu : ` l'ouvre ou la ferme, un saut de ligne envoie le message.")
+     (mouse-x "mouse_x" "integer" "Position de la souris simulée, en pixels de la fenêtre (avec mouse_y). Elle tient jusqu'à ce que la souris réelle bouge.")
+     (mouse-y "mouse_y" "integer" "Position de la souris simulée (avec mouse_x).")
+     (button "button" "string" "Bouton de la souris à tenir enfoncé, à la position donnée ou courante." :enum ("left" "right" "middle"))
+     (wheel "wheel" "number" "Mouvement de molette pendant une image : positif vers le haut."))
+    "Simule une touche ou la souris (position, bouton tenu, molette) pendant un
+nombre d'images, ou une saisie de texte, sans focus de fenêtre. Pour une touche
+ou un bouton : si le jeu tourne, attend que ces images soient passées puis
+renvoie l'état ; si le jeu est en pause, l'entrée reste en attente (utiliser
+game_control step). Le texte est lu même en pause. Un glissé : un appel avec le
+bouton sur plusieurs images n'en bouge pas la position ; enchaîner des appels
+avec mouse_x, mouse_y pendant qu'il est tenu."
+  (let ((mouse (or mouse-x mouse-y button wheel)))
+    (when (< 1 (count-if #'identity (list key text mouse)))
+      (error "Donner key, text ou la souris (mouse_x, mouse_y, button, wheel), un seul à la fois.")))
   (cond
+    ((or mouse-x mouse-y button wheel)
+     (when (or (and mouse-x (not mouse-y)) (and mouse-y (not mouse-x)))
+       (error "Donner mouse_x et mouse_y ensemble."))
+     (when (and mouse-x (not (and (integerp mouse-x) (integerp mouse-y))))
+       (error "mouse_x et mouse_y doivent être des entiers."))
+     (when (and wheel (not (realp wheel)))
+       (error "wheel doit être un nombre."))
+     (let ((frames (or frames 1)))
+       (unless (and (integerp frames) (<= 1 frames 600))
+         (error "frames doit être un entier entre 1 et 600."))
+       (format nil "~:[~;Jeu en pause : entrée en attente, utiliser game_control step.~%~]~a"
+               (simulate-mouse mouse-x mouse-y (and button (parse-button button)) frames wheel)
+               (state-json))))
     (text
      (unless (stringp text) (error "text doit être une chaîne."))
      (type-text text)

@@ -23,6 +23,9 @@ scènes, horloge à pas fixe, générateur à graine. Voir README.md.")
    #:job-error #:job-error-message #:job-error-backtrace
    ;; Saisie (input.lisp)
    #:key-down-p #:key-pressed-p #:next-char #:simulate-text #:*simulated-keys*
+   #:mouse-x #:mouse-y #:mouse-button-down-p #:mouse-button-pressed-p
+   #:mouse-button-released-p #:mouse-wheel-move #:*simulated-mouse*
+   #:*simulated-buttons* #:*simulated-wheel*
    ;; Dessin sans allocation (draw.lisp)
    #:color-value #:clear-background #:draw-rectangle #:draw-line
    #:draw-text #:draw-text-centered #:measure-text #:text-size

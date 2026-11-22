@@ -6,7 +6,7 @@ Noyau réutilisable d'un jeu Common Lisp (SBCL, raylib) modifiable à chaud par 
 - `package.lisp` : le package `game-kit` et tout ce qu'il exporte. Un symbole utilisé par un jeu doit y être.
 - `mcp-server.lisp` : serveur MCP (Hunchentoot, JSON-RPC, 127.0.0.1, jeton Bearer, `Origin`/`Host` locaux), `define-mcp-tool`, `ht`, `to-json`, et `GET /console/outbox`.
 - `jobs.lisp` : `call-in-main-thread`, `run-pending-jobs`, `*drawing-jobs*` (fin du dessin, pour les captures).
-- `input.lisp` : clavier réel et simulé (`key-down-p`, `key-pressed-p`, `next-char`).
+- `input.lisp` : clavier et souris, réels et simulés (`key-down-p`, `key-pressed-p`, `next-char`, `mouse-x`, `mouse-button-pressed-p`, `mouse-wheel-move`…).
 - `draw.lisp` : dessin et texte sans allocation, `text-size`.
 - `engine.lisp` : `run-game`, `run-frame`, `update` et `draw` (génériques), `guarded`, mesure par section (`timed`), captures, plein écran.
 - `mcp-tools.lisp` : outils `game_*`, rechargement (`*reload-systems*`, `*infrastructure-files*`, `record-loaded-digests`).

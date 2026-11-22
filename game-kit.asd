@@ -31,10 +31,11 @@ sans allocation, scènes, horloge à pas fixe, générateur à graine."
                (:file "reload-tests")
                (:file "rng-tests")
                (:file "fixed-clock-tests")
-               (:file "text-tests"))
+               (:file "text-tests")
+               (:file "input-tests"))
   :perform (asdf:test-op (o c)
              (when (member nil (mapcar (lambda (suite)
                                        (uiop:symbol-call :fiveam :run!
                                                          (uiop:find-symbol* suite :game-kit/tests)))
-                                     '(:jobs :reload :rng :fixed-clock :text)))
+                                     '(:jobs :reload :rng :fixed-clock :text :input)))
                (error "Des tests ont échoué."))))
