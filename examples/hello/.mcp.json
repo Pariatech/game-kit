@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "hello": {
+      "type": "http",
+      "url": "http://127.0.0.1:7777/mcp",
+      "headers": { "Authorization": "Bearer ${LISP_GAME_MCP_TOKEN}" }
+    },
+    "game-console": {
+      "type": "stdio",
+      "command": "bun",
+      "args": ["run", "${GAME_KIT_DIR:-../..}/bridge/server.ts"],
+      "env": {
+        "LISP_GAME_MCP_TOKEN": "${LISP_GAME_MCP_TOKEN}",
+        "GAME_NAME": "hello",
+        "GAME_MCP_SERVER": "hello"
+      }
+    }
+  }
+}
